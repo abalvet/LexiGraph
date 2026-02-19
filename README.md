@@ -107,7 +107,7 @@ The game requires the ATILF TLFi XML release:
 
 You will get > 80 XML files.
 
-Alternatively: you can use the JSON conversion of the current version. But **remember**: this JSON version matches the 2026-02 XML version of TLFi.
+Alternatively: you can use the ready to use samples of the JSON conversion of the current version. But **remember**: this JSON version is but a tiny sample of the whole TLFi dictionary.
 
 ---
 
