@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexiGraphe — Chaîne Sémantique</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-medium: #16213e;
+            --bg-light: #0f3460;
+            --accent: #e94560;
+            --accent-soft: #ff6b6b;
+            --text: #eaeaea;
+            --text-muted: #a0a0a0;
+            --success: #4ecca3;
+            --warning: #ffc107;
+            --node-bg: #0f3460;
+            --edge-color: #4ecca3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-medium);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .logo span {
+            color: var(--text);
+            font-weight: normal;
+        }
+
+        .score-display {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        /* Main content */
+        main {
+            /*flex: 1;*/
+            flex: none;
+            height: 40vh;               /* 40% de la hauteur de la fenêtre */
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            gap: 1.5rem;
+        }
+
+        /* Challenge display */
+        .challenge {
+            background: var(--bg-medium);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .challenge-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .challenge-words {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .challenge-word {
+            background: var(--bg-light);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid var(--accent);
+        }
+
+        .challenge-word.start {
+            border-color: var(--success);
+        }
+
+        .challenge-word.end {
+            border-color: var(--accent);
+        }
+
+        .challenge-arrow {
+            font-size: 2rem;
+            color: var(--text-muted);
+        }
+
+        /* Graph visualization */
+        .graph-container {
+            flex: 1;
+            background: var(--bg-medium);
+            border-radius: 12px;
+            position: relative;
+            min-height: 300px;
+            overflow: hidden;
+        }
+
+        #graph-canvas {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+        }
+
+        /* Input area */
+        .input-area {
+            background: var(--bg-medium);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #word-input {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1.2rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 8px;
+            background: var(--bg-dark);
+            color: var(--text);
+            text-transform: uppercase;
+        }
+
+        #word-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-soft);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--success);
+            color: var(--bg-dark);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Chain display */
+        .chain-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            min-height: 2.5rem;
+        }
+
+        .chain-word {
+            background: var(--bg-light);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chain-word.start {
+            background: var(--success);
+            color: var(--bg-dark);
+        }
+
+        .chain-word.current {
+            border: 2px dashed var(--warning);
+        }
+
+        .chain-arrow {
+            color: var(--edge-color);
+            font-weight: bold;
+        }
+
+        .chain-word .remove-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0 0.25rem;
+        }
+
+        .chain-word .remove-btn:hover {
+            color: var(--accent-soft);
+        }
+
+        /* Suggestions */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .suggestions-label {
+            width: 100%;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion {
+            background: var(--bg-dark);
+            border: 1px solid var(--bg-light);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion:hover {
+            border-color: var(--accent);
+            background: var(--bg-light);
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .message.success {
+            background: rgba(78, 204, 163, 0.2);
+            border: 1px solid var(--success);
+        }
+
+        .message.error {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid var(--accent);
+        }
+
+        .message.info {
+            background: rgba(15, 52, 96, 0.5);
+            border: 1px solid var(--bg-light);
+        }
+
+        /* Definition tooltip */
+        .tooltip {
+            position: absolute;
+            background: var(--bg-dark);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 300px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .tooltip.visible {
+            display: block;
+        }
+
+        .tooltip-word {
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-pos {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-def {
+            font-size: 0.9rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--bg-medium);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid var(--accent);
+        }
+
+        .modal h2 {
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+
+        .modal-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .modal-stat {
+            text-align: center;
+        }
+
+        .modal-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .modal-stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .modal-chain {
+            background: var(--bg-dark);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            word-wrap: break-word;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-medium);
+            padding: 1rem 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--bg-light);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .challenge-words {
+                flex-direction: column;
+            }
+
+            .challenge-arrow {
+                transform: rotate(90deg);
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">LexiGraphe <span>— Chaîne Sémantique</span></div>
+        <div class="score-display">
+            <div class="score-item">
+                <div class="score-value" id="score">0</div>
+                <div>Points</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value" id="chains-completed">0</div>
+                <div>Chaînes</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value" id="relations-collected">0</div>
+                <div>Relations</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="challenge">
+            <div class="challenge-label">Reliez ces deux mots par une chaîne sémantique</div>
+            <div class="challenge-words">
+                <div class="challenge-word start" id="start-word">LIGNIFIER</div>
+                <div class="challenge-arrow">→ → →</div>
+                <div class="challenge-word end" id="end-word">GLACE</div>
+            </div>
+        </div>
+
+        <div class="graph-container">
+            <canvas id="graph-canvas"></canvas>
+            <div class="tooltip" id="tooltip">
+                <div class="tooltip-word"></div>
+                <div class="tooltip-pos"></div>
+                <div class="tooltip-def"></div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="chain-display" id="chain-display">
+                <span class="chain-word start" id="chain-start">LIGNIFIER</span>
+            </div>
+
+            <div class="input-row">
+                <input type="text" id="word-input" placeholder="Entrez le mot suivant..." autocomplete="off">
+                <button class="btn btn-primary" id="add-btn">Ajouter</button>
+                <button class="btn btn-secondary" id="validate-btn" disabled>Valider la chaîne</button>
+            </div>
+
+            <div class="suggestions" id="suggestions">
+                <div class="suggestions-label">💡 Suggestions (cliquez pour ajouter) :</div>
+            </div>
+
+            <div id="message-area"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>
+            Données lexicales : <a href="http://www.atilf.fr/tlfi" target="_blank">TLFi (ATILF)</a> — 
+            Projet <strong>Master LIIAN</strong> — Université de Lille — 
+            <a href="#" id="about-link">À propos</a>
+        </p>
+    </footer>
+
+    <!-- Modal de victoire -->
+    <div class="modal-overlay" id="victory-modal">
+        <div class="modal">
+            <h2>🎉 Chaîne complétée !</h2>
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modal-links">0</div>
+                    <div class="modal-stat-label">Maillons</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modal-points">0</div>
+                    <div class="modal-stat-label">Points gagnés</div>
+                </div>
+            </div>
+            <div class="modal-chain" id="modal-chain"></div>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Vous avez contribué <strong id="modal-relations">0</strong> nouvelles relations au graphe lexical !
+            </p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="new-game-btn">Nouvelle chaîne</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // DONNÉES LEXICALES (TLFi simplifié)
+        // ========================================
+        const LEXICON = {
+            "LIGNIFIER": {
+                "pos": "verbe pronominal",
+                "domains": ["BOT."],
+                "definitions": ["Se transformer en bois."],
+                "derivatives": ["LIGNIFIÉ", "LIGNIFICATION"],
+                "related": ["BOIS", "ARBRE", "VÉGÉTAL", "DURCI"]
+            },
+            "BOIS": {
+                "pos": "substantif masculin",
+                "domains": ["BOT.", "SYLVIC."],
+                "definitions": ["Substance dure et compacte des arbres.", "Étendue de terrain couverte d'arbres."],
+                "derivatives": ["BOISÉ", "BOISEMENT", "BOISER"],
+                "related": ["FORÊT", "ARBRE", "LIGNEUX", "CHÊNE"]
+            },
+            "FORÊT": {
+                "pos": "substantif féminin",
+                "domains": ["GÉOGR.", "ÉCOL."],
+                "definitions": ["Vaste étendue de terrain couverte d'arbres."],
+                "derivatives": ["FORESTIER", "FORESTERIE"],
+                "related": ["BOIS", "ARBRE", "NATURE", "OMBRE"]
+            },
+            "ARBRE": {
+                "pos": "substantif masculin",
+                "domains": ["BOT."],
+                "definitions": ["Végétal ligneux de grande taille."],
+                "derivatives": ["ARBRISSEAU", "ARBUSTE", "ARBORÉ"],
+                "related": ["FORÊT", "FEUILLE", "RACINE", "BOIS"]
+            },
+            "FEUILLE": {
+                "pos": "substantif féminin",
+                "domains": ["BOT."],
+                "definitions": ["Organe végétal, généralement vert et plat."],
+                "derivatives": ["FEUILLAGE", "FEUILLU", "EFFEUILLER"],
+                "related": ["ARBRE", "VERT", "AUTOMNE", "BRANCHE"]
+            },
+            "OMBRE": {
+                "pos": "substantif féminin",
+                "domains": ["PHYS.", "FIG."],
+                "definitions": ["Zone sombre créée par un corps opaque qui intercepte la lumière."],
+                "derivatives": ["OMBRAGER", "OMBRAGÉ", "OMBREUX"],
+                "related": ["LUMIÈRE", "SOLEIL", "FORÊT", "FRAÎCHEUR"]
+            },
+            "LUMIÈRE": {
+                "pos": "substantif féminin",
+                "domains": ["PHYS.", "FIG."],
+                "definitions": ["Rayonnement électromagnétique visible."],
+                "derivatives": ["LUMINEUX", "LUMINOSITÉ", "ILLUMINER"],
+                "related": ["SOLEIL", "OMBRE", "CLARTÉ", "JOUR"]
+            },
+            "SOLEIL": {
+                "pos": "substantif masculin",
+                "domains": ["ASTRON."],
+                "definitions": ["Astre autour duquel gravite la Terre."],
+                "derivatives": ["SOLAIRE", "ENSOLEILLÉ", "ENSOLEILLEMENT"],
+                "related": ["LUMIÈRE", "CHALEUR", "JOUR", "ÉTÉ"]
+            },
+            "CHALEUR": {
+                "pos": "substantif féminin",
+                "domains": ["PHYS.", "FIG."],
+                "definitions": ["Qualité de ce qui est chaud.", "Température élevée."],
+                "derivatives": ["CHALEUREUX", "CHAUFFER", "RÉCHAUFFER"],
+                "related": ["FROID", "SOLEIL", "ÉTÉ", "FEU"]
+            },
+            "FROID": {
+                "pos": "substantif masculin",
+                "domains": ["PHYS.", "FIG."],
+                "definitions": ["Température basse."],
+                "derivatives": ["FROIDEUR", "REFROIDIR", "FROIDURE"],
+                "related": ["CHALEUR", "GLACE", "HIVER", "GEL"]
+            },
+            "GLACE": {
+                "pos": "substantif féminin",
+                "domains": ["PHYS."],
+                "definitions": ["Eau congelée.", "Miroir."],
+                "derivatives": ["GLACER", "GLACIAL", "GLACIATION"],
+                "related": ["EAU", "FROID", "HIVER", "NEIGE"]
+            },
+            "EAU": {
+                "pos": "substantif féminin",
+                "domains": ["CHIM.", "PHYS."],
+                "definitions": ["Liquide incolore, inodore, composé d'hydrogène et d'oxygène."],
+                "derivatives": ["AQUEUX", "AQUATIQUE"],
+                "related": ["GLACE", "RIVIÈRE", "MER", "PLUIE"]
+            },
+            "FRAÎCHEUR": {
+                "pos": "substantif féminin",
+                "domains": [],
+                "definitions": ["Qualité de ce qui est frais.", "Température modérément froide."],
+                "derivatives": ["FRAIS", "RAFRAÎCHIR"],
+                "related": ["FROID", "OMBRE", "AIR", "MATIN"]
+            },
+            "NATURE": {
+                "pos": "substantif féminin",
+                "domains": ["PHILOS.", "ÉCOL."],
+                "definitions": ["Ensemble du monde physique."],
+                "derivatives": ["NATUREL", "NATURALISTE", "DÉNATURER"],
+                "related": ["FORÊT", "ANIMAL", "VÉGÉTAL", "TERRE"]
+            },
+            "VIE": {
+                "pos": "substantif féminin",
+                "domains": ["BIOL.", "PHILOS."],
+                "definitions": ["État des organismes animés."],
+                "derivatives": ["VITAL", "VIVANT", "VIVRE"],
+                "related": ["MORT", "EXISTENCE", "NAISSANCE", "ÊTRE"]
+            },
+            "MORT": {
+                "pos": "substantif féminin",
+                "domains": ["BIOL.", "PHILOS."],
+                "definitions": ["Cessation définitive de la vie."],
+                "derivatives": ["MORTEL", "MORTALITÉ", "MOURIR"],
+                "related": ["VIE", "FIN", "DISPARITION", "DÉCÈS"]
+            },
+            "TEMPS": {
+                "pos": "substantif masculin",
+                "domains": ["PHILOS.", "PHYS."],
+                "definitions": ["Durée dans laquelle se succèdent les événements."],
+                "derivatives": ["TEMPOREL", "TEMPORAIRE", "CONTEMPORAIN"],
+                "related": ["ESPACE", "DURÉE", "MOMENT", "HEURE"]
+            },
+            "RACINE": {
+                "pos": "substantif féminin",
+                "domains": ["BOT.", "LING."],
+                "definitions": ["Partie souterraine d'un végétal.", "Élément irréductible d'un mot."],
+                "derivatives": ["RACINAIRE", "ENRACINER", "DÉRACINER"],
+                "related": ["ARBRE", "TERRE", "ORIGINE", "SOL"]
+            },
+            "TERRE": {
+                "pos": "substantif féminin",
+                "domains": ["GÉOGR.", "AGRIC."],
+                "definitions": ["Sol sur lequel on marche.", "Planète du système solaire."],
+                "derivatives": ["TERRESTRE", "TERRAIN", "ENTERRER"],
+                "related": ["SOL", "PLANÈTE", "MONDE", "RACINE"]
+            },
+            "HIVER": {
+                "pos": "substantif masculin",
+                "domains": [],
+                "definitions": ["Saison la plus froide de l'année."],
+                "derivatives": ["HIVERNAL", "HIVERNER"],
+                "related": ["FROID", "NEIGE", "GLACE", "SAISON"]
+            },
+            "ÉTÉ": {
+                "pos": "substantif masculin",
+                "domains": [],
+                "definitions": ["Saison la plus chaude de l'année."],
+                "derivatives": ["ESTIVAL"],
+                "related": ["CHALEUR", "SOLEIL", "VACANCES", "SAISON"]
+            },
+            "NEIGE": {
+                "pos": "substantif féminin",
+                "domains": ["MÉTÉO."],
+                "definitions": ["Eau congelée qui tombe en flocons blancs."],
+                "derivatives": ["NEIGER", "NEIGEUX", "ENNEIGÉ"],
+                "related": ["GLACE", "HIVER", "FROID", "BLANC"]
+            },
+            "FEU": {
+                "pos": "substantif masculin",
+                "domains": ["PHYS."],
+                "definitions": ["Combustion dégageant chaleur et lumière."],
+                "derivatives": ["ENFLAMMER", "IGNIFUGE"],
+                "related": ["CHALEUR", "FLAMME", "BRÛLER", "LUMIÈRE"]
+            },
+            "AIR": {
+                "pos": "substantif masculin",
+                "domains": ["PHYS.", "MÉTÉO."],
+                "definitions": ["Mélange gazeux constituant l'atmosphère."],
+                "derivatives": ["AÉRIEN", "AÉRER"],
+                "related": ["VENT", "ATMOSPHÈRE", "RESPIRER", "FRAÎCHEUR"]
+            }
+        };
+
+        // Liste des défis possibles (paires de mots)
+        const CHALLENGES = [
+            ["LIGNIFIER", "GLACE"],
+            ["ARBRE", "FROID"],
+            ["SOLEIL", "NEIGE"],
+            ["FORÊT", "FEU"],
+            ["RACINE", "AIR"],
+            ["BOIS", "EAU"],
+            ["VIE", "GLACE"],
+            ["CHALEUR", "OMBRE"],
+            ["FEUILLE", "HIVER"],
+            ["NATURE", "MORT"]
+        ];
+
+        // ========================================
+        // ÉTAT DU JEU
+        // ========================================
+        let gameState = {
+            startWord: "",
+            endWord: "",
+            chain: [],
+            score: 0,
+            chainsCompleted: 0,
+            relationsCollected: 0,
+            collectedRelations: [] // Pour stocker les relations découvertes
+        };
+
+        // ========================================
+        // ÉLÉMENTS DOM
+        // ========================================
+        const elements = {
+            startWord: document.getElementById('start-word'),
+            endWord: document.getElementById('end-word'),
+            chainDisplay: document.getElementById('chain-display'),
+            chainStart: document.getElementById('chain-start'),
+            wordInput: document.getElementById('word-input'),
+            addBtn: document.getElementById('add-btn'),
+            validateBtn: document.getElementById('validate-btn'),
+            suggestions: document.getElementById('suggestions'),
+            messageArea: document.getElementById('message-area'),
+            score: document.getElementById('score'),
+            chainsCompleted: document.getElementById('chains-completed'),
+            relationsCollected: document.getElementById('relations-collected'),
+            canvas: document.getElementById('graph-canvas'),
+            tooltip: document.getElementById('tooltip'),
+            victoryModal: document.getElementById('victory-modal'),
+            newGameBtn: document.getElementById('new-game-btn')
+        };
+
+        // ========================================
+        // GRAPHE VISUEL
+        // ========================================
+        class GraphRenderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.nodes = [];
+                this.edges = [];
+                this.hoveredNode = null;
+                this.setupCanvas();
+                this.setupEvents();
+            }
+
+            setupCanvas() {
+                const resize = () => {
+                    const rect = this.canvas.parentElement.getBoundingClientRect();
+                    this.canvas.width = rect.width;
+                    this.canvas.height = rect.height;
+                    this.render();
+                };
+                resize();
+                window.addEventListener('resize', resize);
+            }
+
+            setupEvents() {
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    let found = null;
+                    for (const node of this.nodes) {
+                        const dist = Math.hypot(x - node.x, y - node.y);
+                        if (dist < node.radius + 5) {
+                            found = node;
+                            break;
+                        }
+                    }
+                    
+                    if (found !== this.hoveredNode) {
+                        this.hoveredNode = found;
+                        this.render();
+                        this.updateTooltip(found, e.clientX, e.clientY);
+                    }
+                });
+
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.hoveredNode = null;
+                    this.render();
+                    elements.tooltip.classList.remove('visible');
+                });
+            }
+
+            updateTooltip(node, mouseX, mouseY) {
+                if (!node) {
+                    elements.tooltip.classList.remove('visible');
+                    return;
+                }
+
+                const entry = LEXICON[node.word];
+                if (!entry) {
+                    elements.tooltip.classList.remove('visible');
+                    return;
+                }
+
+                elements.tooltip.querySelector('.tooltip-word').textContent = node.word;
+                elements.tooltip.querySelector('.tooltip-pos').textContent = entry.pos;
+                elements.tooltip.querySelector('.tooltip-def').textContent = entry.definitions[0] || '';
+
+                // Positionner le tooltip
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                let left = mouseX - rect.left + 15;
+                let top = mouseY - rect.top + 15;
+
+                // Éviter de sortir de l'écran
+                if (left + 300 > rect.width) left = mouseX - rect.left - 315;
+                if (top + 150 > rect.height) top = mouseY - rect.top - 155;
+
+                elements.tooltip.style.left = left + 'px';
+                elements.tooltip.style.top = top + 'px';
+                elements.tooltip.classList.add('visible');
+            }
+
+            setChain(chain) {
+                this.nodes = [];
+                this.edges = [];
+
+                if (chain.length === 0) return;
+
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const spacing = Math.min(120, (this.canvas.width - 100) / chain.length);
+
+                // Calculer la position de départ pour centrer la chaîne
+                const totalWidth = (chain.length - 1) * spacing;
+                const startX = centerX - totalWidth / 2;
+
+                // Créer les nœuds
+                chain.forEach((word, i) => {
+                    const isStart = i === 0;
+                    const isEnd = word === gameState.endWord;
+                    const isCurrent = i === chain.length - 1 && !isEnd;
+
+                    this.nodes.push({
+                        word: word,
+                        x: startX + i * spacing,
+                        y: centerY + Math.sin(i * 0.5) * 30, // Légère ondulation
+                        radius: 35,
+                        isStart: isStart,
+                        isEnd: isEnd,
+                        isCurrent: isCurrent
+                    });
+
+                    // Créer les arêtes
+                    if (i > 0) {
+                        this.edges.push({
+                            from: i - 1,
+                            to: i
+                        });
+                    }
+                });
+
+                this.render();
+            }
+
+            render() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Dessiner les arêtes
+                ctx.strokeStyle = '#4ecca3';
+                ctx.lineWidth = 3;
+                
+                for (const edge of this.edges) {
+                    const from = this.nodes[edge.from];
+                    const to = this.nodes[edge.to];
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(from.x + from.radius, from.y);
+                    ctx.lineTo(to.x - to.radius, to.y);
+                    ctx.stroke();
+
+                    // Flèche
+                    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                    const arrowX = to.x - to.radius - 5;
+                    const arrowY = to.y;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(arrowX, arrowY);
+                    ctx.lineTo(arrowX - 10, arrowY - 6);
+                    ctx.lineTo(arrowX - 10, arrowY + 6);
+                    ctx.closePath();
+                    ctx.fillStyle = '#4ecca3';
+                    ctx.fill();
+                }
+
+                // Dessiner les nœuds
+                for (const node of this.nodes) {
+                    // Cercle de fond
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                    
+                    if (node.isStart) {
+                        ctx.fillStyle = '#4ecca3';
+                    } else if (node.isEnd) {
+                        ctx.fillStyle = '#e94560';
+                    } else if (node.isCurrent) {
+                        ctx.fillStyle = '#ffc107';
+                    } else {
+                        ctx.fillStyle = '#0f3460';
+                    }
+                    ctx.fill();
+
+                    // Bordure
+                    ctx.strokeStyle = node === this.hoveredNode ? '#fff' : '#16213e';
+                    ctx.lineWidth = node === this.hoveredNode ? 3 : 2;
+                    ctx.stroke();
+
+                    // Texte
+                    ctx.fillStyle = node.isStart || node.isEnd || node.isCurrent ? '#1a1a2e' : '#eaeaea';
+                    ctx.font = 'bold 11px Segoe UI, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Tronquer si trop long
+                    let text = node.word;
+                    if (text.length > 8) {
+                        text = text.substring(0, 7) + '…';
+                    }
+                    ctx.fillText(text, node.x, node.y);
+                }
+            }
+        }
+
+        // Instance du renderer
+        let graphRenderer;
+
+        // ========================================
+        // LOGIQUE DE JEU
+        // ========================================
+
+        function isValidWord(word) {
+            return LEXICON.hasOwnProperty(word.toUpperCase());
+        }
+
+        function areSemanticallySimilar(word1, word2) {
+            // Vérifie si deux mots sont "liés" selon notre lexique simplifié
+            const entry1 = LEXICON[word1.toUpperCase()];
+            const entry2 = LEXICON[word2.toUpperCase()];
+            
+            if (!entry1 || !entry2) return false;
+
+            // Vérifier les relations explicites
+            if (entry1.related && entry1.related.includes(word2.toUpperCase())) return true;
+            if (entry2.related && entry2.related.includes(word1.toUpperCase())) return true;
+
+            // Vérifier les dérivés
+            if (entry1.derivatives && entry1.derivatives.includes(word2.toUpperCase())) return true;
+            if (entry2.derivatives && entry2.derivatives.includes(word1.toUpperCase())) return true;
+
+            // Vérifier les domaines communs
+            if (entry1.domains && entry2.domains) {
+                const commonDomains = entry1.domains.filter(d => entry2.domains.includes(d));
+                if (commonDomains.length > 0) return true;
+            }
+
+            return false;
+        }
+
+        function getSuggestions(currentWord) {
+            const entry = LEXICON[currentWord.toUpperCase()];
+            if (!entry) return [];
+
+            const suggestions = new Set();
+            
+            // Ajouter les mots liés
+            if (entry.related) {
+                entry.related.forEach(w => {
+                    if (LEXICON[w] && !gameState.chain.includes(w)) {
+                        suggestions.add(w);
+                    }
+                });
+            }
+
+            // Ajouter les dérivés
+            if (entry.derivatives) {
+                entry.derivatives.forEach(w => {
+                    if (LEXICON[w] && !gameState.chain.includes(w)) {
+                        suggestions.add(w);
+                    }
+                });
+            }
+
+            return Array.from(suggestions).slice(0, 6);
+        }
+
+        function showMessage(text, type = 'info') {
+            elements.messageArea.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+                elements.messageArea.innerHTML = '';
+            }, 3000);
+        }
+
+        function updateChainDisplay() {
+            let html = '';
+            
+            gameState.chain.forEach((word, i) => {
+                const isStart = i === 0;
+                const isCurrent = i === gameState.chain.length - 1 && word !== gameState.endWord;
+                
+                if (i > 0) {
+                    html += '<span class="chain-arrow">→</span>';
+                }
+                
+                html += `<span class="chain-word ${isStart ? 'start' : ''} ${isCurrent ? 'current' : ''}">
+                    ${word}
+                    ${!isStart ? `<button class="remove-btn" data-index="${i}">×</button>` : ''}
+                </span>`;
+            });
+
+            elements.chainDisplay.innerHTML = html;
+
+            // Ajouter les event listeners pour les boutons de suppression
+            elements.chainDisplay.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    removeFromChain(index);
+                });
+            });
+
+            // Mettre à jour le graphe
+            graphRenderer.setChain(gameState.chain);
+
+            // Mettre à jour les suggestions
+            updateSuggestions();
+
+            // Activer/désactiver le bouton de validation
+            const lastWord = gameState.chain[gameState.chain.length - 1];
+            elements.validateBtn.disabled = lastWord !== gameState.endWord;
+        }
+
+        function updateSuggestions() {
+            const lastWord = gameState.chain[gameState.chain.length - 1];
+            const suggestions = getSuggestions(lastWord);
+
+            let html = '<div class="suggestions-label">💡 Suggestions (cliquez pour ajouter) :</div>';
+            
+            if (suggestions.length === 0) {
+                html += '<span style="color: var(--text-muted); font-size: 0.85rem;">Aucune suggestion disponible</span>';
+            } else {
+                suggestions.forEach(word => {
+                    html += `<span class="suggestion" data-word="${word}">${word}</span>`;
+                });
+            }
+
+            elements.suggestions.innerHTML = html;
+
+            // Event listeners pour les suggestions
+            elements.suggestions.querySelectorAll('.suggestion').forEach(el => {
+                el.addEventListener('click', () => {
+                    addWordToChain(el.dataset.word);
+                });
+            });
+        }
+
+        function addWordToChain(word) {
+            word = word.toUpperCase().trim();
+            
+            if (!word) return;
+
+            // Vérifier si le mot existe dans le lexique
+            if (!isValidWord(word)) {
+                showMessage(`Le mot "${word}" n'est pas dans le lexique. Essayez un autre mot !`, 'error');
+                return;
+            }
+
+            // Vérifier si le mot est déjà dans la chaîne
+            if (gameState.chain.includes(word)) {
+                showMessage('Ce mot est déjà dans la chaîne !', 'error');
+                return;
+            }
+
+            // Vérifier la relation sémantique avec le dernier mot
+            const lastWord = gameState.chain[gameState.chain.length - 1];
+            if (!areSemanticallySimilar(lastWord, word)) {
+                // On accepte quand même mais on signale
+                showMessage(`Relation "${lastWord} → ${word}" enregistrée ! (nouvelle relation)`, 'info');
+                
+                // Enregistrer la nouvelle relation
+                gameState.collectedRelations.push({
+                    from: lastWord,
+                    to: word,
+                    timestamp: Date.now()
+                });
+                gameState.relationsCollected++;
+                elements.relationsCollected.textContent = gameState.relationsCollected;
+            }
+
+            // Ajouter le mot
+            gameState.chain.push(word);
+            elements.wordInput.value = '';
+            updateChainDisplay();
+
+            // Vérifier si on a atteint la fin
+            if (word === gameState.endWord) {
+                showMessage('🎉 Vous avez atteint le mot cible ! Cliquez sur "Valider" !', 'success');
+            }
+        }
+
+        function removeFromChain(index) {
+            if (index === 0) return; // Ne pas supprimer le mot de départ
+            
+            // Supprimer ce mot et tous les suivants
+            gameState.chain = gameState.chain.slice(0, index);
+            updateChainDisplay();
+        }
+
+        function validateChain() {
+            if (gameState.chain[gameState.chain.length - 1] !== gameState.endWord) {
+                showMessage('La chaîne doit se terminer par le mot cible !', 'error');
+                return;
+            }
+
+            // Calculer le score
+            const links = gameState.chain.length - 1;
+            const basePoints = 100;
+            const bonus = Math.max(0, (10 - links) * 20); // Bonus pour chaînes courtes
+            const points = basePoints + bonus;
+
+            // Mettre à jour l'état
+            gameState.score += points;
+            gameState.chainsCompleted++;
+
+            // Mettre à jour l'affichage
+            elements.score.textContent = gameState.score;
+            elements.chainsCompleted.textContent = gameState.chainsCompleted;
+
+            // Afficher le modal de victoire
+            document.getElementById('modal-links').textContent = links;
+            document.getElementById('modal-points').textContent = points;
+            document.getElementById('modal-chain').textContent = gameState.chain.join(' → ');
+            document.getElementById('modal-relations').textContent = 
+                gameState.collectedRelations.filter(r => 
+                    gameState.chain.includes(r.from) && gameState.chain.includes(r.to)
+                ).length;
+
+            elements.victoryModal.classList.add('visible');
+        }
+
+        function startNewGame() {
+            // Choisir un défi aléatoire
+            const challenge = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+            
+            gameState.startWord = challenge[0];
+            gameState.endWord = challenge[1];
+            gameState.chain = [gameState.startWord];
+
+            // Mettre à jour l'affichage
+            elements.startWord.textContent = gameState.startWord;
+            elements.endWord.textContent = gameState.endWord;
+            elements.wordInput.value = '';
+
+            // Fermer le modal si ouvert
+            elements.victoryModal.classList.remove('visible');
+
+            updateChainDisplay();
+        }
+
+        // ========================================
+        // INITIALISATION
+        // ========================================
+
+        function init() {
+            // Initialiser le renderer de graphe
+            graphRenderer = new GraphRenderer(elements.canvas);
+
+            // Event listeners
+            elements.addBtn.addEventListener('click', () => {
+                addWordToChain(elements.wordInput.value);
+            });
+
+            elements.wordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addWordToChain(elements.wordInput.value);
+                }
+            });
+
+            elements.validateBtn.addEventListener('click', validateChain);
+            elements.newGameBtn.addEventListener('click', startNewGame);
+
+            // Démarrer une nouvelle partie
+            startNewGame();
+        }
+
+        // Lancer l'initialisation
+        init();
+    </script>
+</body>
+</html>
