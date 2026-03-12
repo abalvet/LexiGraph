@@ -26,6 +26,8 @@ LexiGraph is both a game and a research/teaching tool. It shows how structured l
 
 The game uses the [newly released XML](https://www.ortolang.fr/market/lexicons/xml-tlfi/v1)  version of the [TLFi dictionary](https://www.cnrtl.fr/definition/) (Trésor de la Langue Française informatisé).
 
+This could be a good starting point for a master's thesis project in the context of [the new master's program on linguistic and digital accessibility (LIIAN) at Université de Lille](https://formation.univ-lille.fr/fr/offre-de-formation/master-lmd-XB/master-sciences-du-langage-MG002189/linguistique-informatique-pour-l-inclusion-et-l-accessibilite-numerique-MX002192.html)
+
 ---
 
 ## Project Structure
